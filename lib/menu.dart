@@ -3,14 +3,15 @@ import 'package:flutter/material.dart';
 class MyHomePage extends StatelessWidget {
     MyHomePage({super.key});
 
-    final String npm = '2506616693'; // NPM kamu
-    final String name = 'Rania Firsa'; // Nama kamu
-    final String className = 'PBP C'; // Kelas PBP kamu
+    final String npm = '2506616693'; // NPM Rania
+    final String name = 'Rania Firsa'; // Nama Rania
+    final String className = 'PBP C'; // Kelas PBP C
 
+    // Memberi warna berbeda untuk masing-masing tombol aksi
     final List<ItemHomepage> items = [
-        ItemHomepage("Lihat Proyek", Icons.folder),
-        ItemHomepage("Tambah Proyek", Icons.add),
-        ItemHomepage("Logout", Icons.logout),
+        ItemHomepage("Lihat Proyek", Icons.folder, Colors.indigo),
+        ItemHomepage("Tambah Proyek", Icons.add, Colors.amber[800]!),
+        ItemHomepage("Logout", Icons.logout, Colors.red[700]!),
     ];
 
     @override
@@ -31,11 +32,11 @@ class MyHomePage extends StatelessWidget {
             padding: const EdgeInsets.all(10.0),
             child: Column(
                 children: <Widget>[
-                Padding(
-                    padding: const EdgeInsets.only(top: 10.0, bottom: 10.0),
+                const Padding(
+                    padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
                     child: Text(
                     'Selamat datang di My Portofolio Mobile',
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18.0,
                     ),
@@ -106,8 +107,9 @@ class MyHomePage extends StatelessWidget {
     class ItemHomepage {
     final String name;
     final IconData icon;
+    final Color color; // Menambahkan atribut color
 
-    ItemHomepage(this.name, this.icon);
+    ItemHomepage(this.name, this.icon, this.color);
     }
 
     class ItemCard extends StatelessWidget {
@@ -118,7 +120,7 @@ class MyHomePage extends StatelessWidget {
     @override
     Widget build(BuildContext context) {
         return Material(
-        color: Theme.of(context).colorScheme.primary,
+        color: item.color, // Menggunakan warna unik tiap item
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
             onTap: () {
