@@ -13,6 +13,7 @@ class MyHomePage extends StatelessWidget {
   final List<ItemHomepage> items = [
     ItemHomepage("Lihat Proyek", Icons.folder, Colors.indigo),
     ItemHomepage("Tambah Proyek", Icons.add, Colors.amber[800]!),
+    ItemHomepage("Tambah Edukasi", Icons.school, Colors.teal[700]!),
     ItemHomepage("Logout", Icons.logout, Colors.red[700]!),
   ];
 
