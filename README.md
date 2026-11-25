@@ -239,3 +239,130 @@ Salah satu contoh utama adalah penggunaan warna **`Colors.indigo`** sebagai warn
   - *Deteksi Dependensi Modul:* Saran awal dari model bahasa terkadang mereferensikan dependensi lama `package:flutter/material.dart`. Dilakukan verifikasi dan penyesuaian manual agar seluruh import konsisten menggunakan `package:material_ui/material_ui.dart` sesuai pembaruan kurikulum PBP.
   - *Logika Relasi Antar-Field Formulir:* Draf awal form dari AI memperlakukan field tahun selesai sebagai input mandiri. Dilakukan penyesuaian logika manual di mana input Tahun Selesai disembunyikan/dikosongkan secara dinamis jika pengguna mencentang *Sedang Berjalan (Masih Menempuh)*, serta ditambahkan validasi silang agar tahun selesai tidak lebih kecil dari tahun mulai.
   - *Konsistensi Desain Visual:* Dilakukan penyesuaian warna kartu aksi "Tambah Edukasi" (`Colors.teal[700]!`) agar kontras dan selaras dengan kartu aksi lainnya, serta penyesuaian header pop-up ringkasan.
+
+
+---
+
+## Tutorial 10: Flutter Backend Integration, Authentication, and CI/CD
+
+### Apa yang Diimplementasikan
+
+Tutorial 10 mengintegrasikan aplikasi Flutter dengan backend Django REST Framework yang dibangun pada Tutorial 07. Implementasi mencakup:
+
+1. **Backend Django (myportofolio):**
+   - Menambahkan `django-cors-headers` untuk mengizinkan request dari Flutter Web (Chrome).
+   - Mengaktifkan `rest_framework.authtoken` di `INSTALLED_APPS` dan menjalankan migrasi untuk membuat tabel token.
+   - Mengonfigurasi `TokenAuthentication` sebagai metode autentikasi utama (sebelum `SessionAuthentication`) pada `REST_FRAMEWORK` settings.
+   - Menambahkan `CorsMiddleware` ke `MIDDLEWARE` sebelum `CommonMiddleware`.
+   - Menambahkan endpoint `auth/token/` (login, mendapatkan token) dan `auth/logout/` (menghapus token) di `api_urls.py`.
+   - Menambahkan `10.0.2.2` ke `ALLOWED_HOSTS` agar emulator Android dapat mengakses backend lokal.
+
+2. **Flutter App (myportofolio_mobile):**
+   - Menambahkan package `http`, `provider`, `json_annotation` (runtime) dan `build_runner`, `json_serializable` (dev).
+   - Membuat `lib/config.dart`: konstanta `apiBaseUrl` yang dapat di-inject via `--dart-define` saat build.
+   - Membuat `lib/models/project.dart`: model `Project` dengan anotasi `@JsonSerializable(fieldRename: FieldRename.snake)` untuk serialisasi/deserialisasi JSON otomatis dari DRF.
+   - Membuat `lib/services/api_client.dart`: kelas `ApiClient` dengan method `getProjects()`, `createProject()`, `obtainToken()`, `logout()`, dan kelas `ApiException` untuk penanganan error API.
+   - Membuat `lib/services/auth_state.dart`: `AuthState extends ChangeNotifier` untuk manajemen state login/logout aplikasi-wide menggunakan `Provider`.
+   - Membuat `lib/widgets/auth_guard.dart`: helper `ensureLoggedIn()` yang me-redirect ke `LoginScreen` jika pengguna belum login.
+   - Membuat `lib/screens/login_screen.dart`: halaman login lengkap dengan validasi form, pemanggilan `obtainToken()`, dan penanganan `ApiException`.
+   - Membuat `lib/screens/project_list_screen.dart`: menampilkan daftar proyek dari API menggunakan `FutureBuilder` dengan `RefreshIndicator` (pull-to-refresh).
+   - Membuat `lib/screens/project_detail_screen.dart`: halaman detail proyek menampilkan judul, tech stack chip, deskripsi, URL proyek, dan gambar (jika ada).
+   - Memperbarui `lib/main.dart`: menggunakan `MultiProvider` untuk menyediakan `ApiClient` dan `AuthState` ke seluruh widget tree.
+   - Memperbarui `lib/widgets/left_drawer.dart`: menambahkan menu Login/Logout yang adaptif, serta route guard pada menu "Tambah Proyek" dan "Lihat Proyek".
+   - Memperbarui `lib/widgets/project_card.dart`: tombol "Lihat Proyek" diarahkan ke `ProjectListScreen`, "Tambah Proyek" dilindungi oleh `ensureLoggedIn`, dan "Logout" memanggil `authState.logout()`.
+   - Memperbarui `lib/screens/project_form.dart`: field formulir disesuaikan dengan field model DRF API (`title`, `description`, `techStack`, `projectUrl`, `projectImageUrl`) dan `_submit()` memanggil `createProject()` dengan token autentikasi.
+   - Menyiapkan pipeline CI/CD dengan GitHub Actions (`.github/workflows/main.yaml`): job `build` (lint + test) dan job `build_apk` (build APK release + upload artifact).
+
+### Cara Menjalankan Secara Lokal
+
+**Prasyarat:** Python 3, Flutter SDK, dan emulator Android/perangkat fisik tersedia.
+
+1. **Jalankan backend Django:**
+   ```bash
+   cd /path/to/myportofolio
+   pip install -r requirements.txt
+   python manage.py migrate
+   python manage.py runserver
+   ```
+
+2. **Jalankan aplikasi Flutter (Android Emulator):**
+   ```bash
+   cd /path/to/myportofolio_mobile
+   flutter pub get
+   dart run build_runner build --delete-conflicting-outputs
+   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
+   ```
+
+3. **Jalankan aplikasi Flutter (Chrome / Web):**
+   ```bash
+   flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000
+   ```
+
+### Alur Autentikasi
+
+```
+[LoginScreen] --POST /api/v1/auth/token/--> [Django DRF]
+                                                  |
+                                            (Token dibuat)
+                                                  |
+                                         <Token dikembalikan>
+                                                  |
+              [AuthState.login(token)] <-----------
+                                                  |
+              [ProjectListScreen] --GET /api/v1/projects/ (Authorization: Token <key>)--> [DRF]
+```
+
+### Struktur Direktori `lib` Setelah Tutorial 10
+
+```
+lib/
+├── config.dart                      # Konstanta URL API
+├── main.dart                        # Entry point + MultiProvider setup
+├── models/
+│   ├── project.dart                 # Model Project + @JsonSerializable
+│   └── project.g.dart               # (auto-generated, tidak di-commit)
+├── screens/
+│   ├── education_form.dart          # Form tambah edukasi (Tugas 8)
+│   ├── login_screen.dart            # Halaman login token auth
+│   ├── menu.dart                    # Halaman utama
+│   ├── project_detail_screen.dart   # Detail proyek dari API
+│   ├── project_form.dart            # Form tambah proyek (kirim ke API)
+│   └── project_list_screen.dart     # Daftar proyek dari API
+├── services/
+│   ├── api_client.dart              # HTTP client untuk DRF API
+│   └── auth_state.dart              # State management autentikasi
+└── widgets/
+    ├── auth_guard.dart              # Route guard helper
+    ├── left_drawer.dart             # Drawer navigasi (adaptif login)
+    └── project_card.dart            # Kartu aksi halaman utama
+```
+
+### Setup CI/CD (GitHub Actions)
+
+File `.github/workflows/main.yaml` mendefinisikan dua job:
+
+| Job | Trigger | Langkah |
+|-----|---------|---------|
+| `build` (CI) | Push ke branch mana pun, Pull Request | `flutter pub get` → `dart run build_runner build` → `flutter analyze` → `flutter test` |
+| `build_apk` (CD) | Push ke `main` saja | `flutter pub get` → `dart run build_runner build` → `flutter build apk --release` → Upload artifact `app-release-apk` |
+
+**Variabel yang perlu dikonfigurasi di GitHub:**
+- Repository → Settings → Secrets and variables → Actions → Variables:
+  - `API_BASE_URL` = `https://rania-tsabitah-myportofolio.pws.cs.ui.ac.id` (URL deployment Django)
+
+---
+
+### AI Disclosure (Tutorial 10)
+- **Alat Bantu yang Digunakan:** Antigravity AI Coding Assistant berbasis model LLM (Large Language Model).
+- **Strategi Prompting:**
+  1. Memberikan teks tutorial lengkap Tutorial 10 sebagai konteks instruksi.
+  2. Menyediakan summary kode proyek yang sudah dibangun pada Tutorial 07–09 sebagai konteks.
+  3. Meminta implementasi bertahap: backend Django terlebih dahulu (settings, endpoint), lalu Flutter (model, service, screen, CI/CD).
+- **Bagian yang Dibantu oleh AI:**
+  - Penulisan seluruh file baru (`api_client.dart`, `auth_state.dart`, `auth_guard.dart`, `login_screen.dart`, `project_list_screen.dart`, `project_detail_screen.dart`, `config.dart`, `project.dart`).
+  - Modifikasi file yang ada (`main.dart`, `left_drawer.dart`, `project_card.dart`, `project_form.dart`).
+  - Konfigurasi GitHub Actions CI/CD pipeline.
+  - Konfigurasi Django backend (settings, api_views, api_urls).
+- **Keterbatasan AI & Perbaikan/Penyesuaian Manual yang Dilakukan:**
+  - *Import path TokenAuthentication:* Tutorial menyebut `rest_framework.authtoken.authentication.TokenAuthentication` yang tidak valid; AI mengoreksi ke path yang benar `rest_framework.authentication.TokenAuthentication`.
+  - *Import `material_ui` vs `flutter/material.dart`:* AI memastikan file baru menggunakan `import 'package:flutter/material.dart'` (bukan `material_ui`) karena test framework membutuhkan `MaterialLocalizations` dari `MaterialApp` asli.

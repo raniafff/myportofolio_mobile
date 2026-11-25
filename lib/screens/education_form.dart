@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 
 class EducationFormPage extends StatefulWidget {
@@ -21,11 +21,7 @@ class _EducationFormPageState extends State<EducationFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Center(
-          child: Text(
-            'Add Education Form',
-          ),
-        ),
+        title: const Center(child: Text('Add Education Form')),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
       ),
@@ -179,7 +175,8 @@ class _EducationFormPageState extends State<EducationFormPage> {
                 child: TextFormField(
                   maxLines: 4,
                   decoration: InputDecoration(
-                    hintText: "Ceritakan kegiatan, organisasi, atau pencapaianmu",
+                    hintText:
+                        "Ceritakan kegiatan, organisasi, atau pencapaianmu",
                     labelText: "Deskripsi / Aktivitas",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(5.0),
@@ -214,7 +211,9 @@ class _EducationFormPageState extends State<EducationFormPage> {
                           context: context,
                           builder: (context) {
                             return AlertDialog(
-                              title: const Text('Edukasi berhasil ditambahkan!'),
+                              title: const Text(
+                                'Edukasi berhasil ditambahkan!',
+                              ),
                               content: SingleChildScrollView(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
